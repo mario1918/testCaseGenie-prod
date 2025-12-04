@@ -4,6 +4,17 @@ Set objFSO = CreateObject("Scripting.FileSystemObject")
 ' Get the script directory
 strScriptPath = objFSO.GetParentFolderName(WScript.ScriptFullName)
 
+' Install npm dependencies for Angular frontend (hidden)
+npmInstallCmd = "cmd /c cd /d """ & strScriptPath & "\bin\front\angular-frontend"" && npm install"
+npmExitCode = WshShell.Run(npmInstallCmd, 0, True)
+
+' Check if npm install succeeded
+If npmExitCode <> 0 Then
+    MsgBox "ERROR: Failed to install npm dependencies." & vbCrLf & vbCrLf & _
+           "Please check your internet connection and try again.", vbCritical, "TestCaseGenie Error"
+    WScript.Quit 1
+End If
+
 ' Show starting message
 ' MsgBox "Starting TestCaseGenie..." & vbCrLf & vbCrLf & _
 '        "Please wait about 15 seconds." & vbCrLf & _
