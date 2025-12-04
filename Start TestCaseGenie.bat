@@ -13,12 +13,12 @@ git diff --quiet HEAD origin/main
 if %errorlevel% neq 0 (
     echo Updates found! Pulling latest changes...
     git pull origin main
-    if %errorlevel% neq 0 (
-        echo.
-        echo ERROR: Failed to pull changes. Please resolve any conflicts manually.
-        pause
-        exit /b 1
-    )
+    @REM if %errorlevel% neq 0 (
+    @REM     echo.
+    @REM     echo ERROR: Failed to pull changes. Please resolve any conflicts manually.
+    @REM     pause
+    @REM     exit /b 1
+    @REM )
     echo.
     echo Successfully updated to latest version.
 ) else (
