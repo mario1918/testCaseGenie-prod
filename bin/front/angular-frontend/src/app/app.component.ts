@@ -107,6 +107,8 @@ export class AppComponent implements OnInit {
   selectedVersionId: string = '';
   selectedCycleId: string = '';
   importToJiraModal: any;
+  isLoadingVersions: boolean = false;
+  isLoadingCycles: boolean = false;
   
   // Sub-tasks properties
   subtasks: any[] = [];
@@ -655,6 +657,11 @@ export class AppComponent implements OnInit {
       return;
     }
 
+    // Reset selections
+    this.selectedSubtaskKey = '';
+    this.selectedVersionId = '';
+    this.selectedCycleId = '';
+
     // Load Jira versions and test cycles
     this.loadJiraVersions();
     this.loadTestCycles(-1); // Load with default version_id=-1
@@ -691,6 +698,8 @@ export class AppComponent implements OnInit {
 
   loadJiraVersions(): void {
     console.log('Loading Jira versions...');
+    this.isLoadingVersions = true;
+    this.jiraVersions = [];
     this.jiraService.getVersions().subscribe({
       next: (versions) => {
         console.log('Loaded versions:', versions);
@@ -709,10 +718,12 @@ export class AppComponent implements OnInit {
         }
         
         console.log('Sorted versions:', this.jiraVersions);
+        this.isLoadingVersions = false;
       },
       error: (error) => {
         console.error('Error loading Jira versions:', error);
         this.jiraVersions = []; // Ensure it's always an array
+        this.isLoadingVersions = false;
         this.showErrorToast('Failed to load Jira versions. Please ensure you are connected to the VPN and try again.');
       }
     });
@@ -720,6 +731,8 @@ export class AppComponent implements OnInit {
 
   loadTestCycles(versionId: number = -1): void {
     console.log('Loading test cycles for version ID:', versionId);
+    this.isLoadingCycles = true;
+    this.testCycles = [];
     this.jiraService.getTestCycles(versionId).subscribe({
       next: (response) => {
         console.log('Test cycles response:', response);
@@ -741,10 +754,12 @@ export class AppComponent implements OnInit {
         
         console.log('Processed test cycles:', this.testCycles);
         console.log('Test cycles count:', this.testCycles.length);
+        this.isLoadingCycles = false;
       },
       error: (error) => {
         console.error('Error loading test cycles:', error);
         this.testCycles = []; // Ensure it's always an array
+        this.isLoadingCycles = false;
         this.showErrorToast('Failed to load test cycles. Please ensure you are connected to the VPN and try again.');
       }
     });
@@ -770,6 +785,11 @@ export class AppComponent implements OnInit {
     }
 
     // Validate selections
+    if (!this.selectedSubtaskKey) {
+      this.showErrorToast('Please select a sub-task. Import is only allowed to sub-tasks.');
+      return;
+    }
+
     if (!this.selectedVersionId) {
       this.showErrorToast('Please select a version');
       return;
@@ -782,8 +802,8 @@ export class AppComponent implements OnInit {
 
     this.isImportingToJira = true;
 
-    // Use selected subtask key if available, otherwise use the main story key
-    const targetIssueKey = this.selectedSubtaskKey || (this.currentIssue ? this.currentIssue.key : undefined);
+    // Only use the selected subtask key (import to subtasks only)
+    const targetIssueKey = this.selectedSubtaskKey;
 
     // Get components array - prioritize components array, fallback to component string
     const componentsArray = this.currentIssue?.components && this.currentIssue.components.length > 0
@@ -816,9 +836,7 @@ export class AppComponent implements OnInit {
         const hasSucceeded = response.succeeded > 0 || (response.total > 0 && response.failed === 0);
         
         if (hasSucceeded) {
-          const targetInfo = this.selectedSubtaskKey 
-            ? `sub-task ${this.selectedSubtaskKey}` 
-            : `story ${this.currentIssue?.key}`;
+          const targetInfo = `sub-task ${this.selectedSubtaskKey}`;
           const message = `Successfully imported ${response.succeeded} test case${response.succeeded !== 1 ? 's' : ''} to ${targetInfo}!`;
           
           if (response.failed > 0) {
@@ -848,7 +866,10 @@ export class AppComponent implements OnInit {
   }
 
   get canConfirmImport(): boolean {
-    return this.selectedVersionId !== '' && this.selectedCycleId !== '' && !this.isImportingToJira;
+    return this.selectedVersionId !== '' && 
+           this.selectedCycleId !== '' && 
+           this.selectedSubtaskKey !== '' && 
+           !this.isImportingToJira;
   }
 
   // Helper method to format steps for display

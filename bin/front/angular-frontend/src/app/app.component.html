@@ -826,25 +826,35 @@
           <div class="col-md-6">
             <div class="mb-3">
               <label for="versionSelect" class="form-label">Target Version *</label>
-              <select class="form-select" id="versionSelect" [(ngModel)]="selectedVersionId" (change)="onVersionChange()">
+              <select class="form-select" id="versionSelect" [(ngModel)]="selectedVersionId" (change)="onVersionChange()" [disabled]="isLoadingVersions">
                 <option value="">Select a version</option>
                 <option *ngFor="let version of jiraVersions" [value]="version.id">
                   {{ version.name }}
                 </option>
               </select>
-              <div class="form-text">Choose a version to associate the test cases with</div>
+              <div class="form-text" *ngIf="isLoadingVersions">
+                <span class="spinner-border spinner-border-sm me-2"></span>Loading versions...
+              </div>
+              <div class="form-text" *ngIf="!isLoadingVersions">
+                Choose a version to associate the test cases with
+              </div>
             </div>
           </div>
           <div class="col-md-6">
             <div class="mb-3">
               <label for="testCycleSelect" class="form-label">Test Cycle *</label>
-               <select class="form-select" id="testCycleSelect" [(ngModel)]="selectedCycleId" [disabled]="isTestCycleDisabled">
+               <select class="form-select" id="testCycleSelect" [(ngModel)]="selectedCycleId" [disabled]="isTestCycleDisabled || isLoadingCycles">
                 <option value="">Select a test cycle</option>
                 <option *ngFor="let cycle of testCycles" [value]="cycle.id">
                   {{ cycle.name }}
                 </option>
               </select>
-              <div class="form-text">Choose a test cycle for the test cases</div>
+              <div class="form-text" *ngIf="isLoadingCycles">
+                <span class="spinner-border spinner-border-sm me-2"></span>Loading test cycles...
+              </div>
+              <div class="form-text" *ngIf="!isLoadingCycles">
+                Choose a test cycle for the test cases
+              </div>
             </div>
           </div>
         </div>
@@ -854,22 +864,22 @@
           <div class="col-12">
             <div class="mb-3">
               <label for="subtaskSelect" class="form-label">
-                <i class="bi bi-diagram-3"></i> Import to Sub-task
+                <i class="bi bi-diagram-3"></i> Import to Sub-task <span class="text-danger">*</span>
               </label>
-              <select class="form-select" id="subtaskSelect" [(ngModel)]="selectedSubtaskKey" [disabled]="isLoadingSubtasks">
-                <option value="">Import to Story: {{ currentIssue.key }} - {{ currentIssue.summary }}</option>
+              <select class="form-select" id="subtaskSelect" [(ngModel)]="selectedSubtaskKey" [disabled]="isLoadingSubtasks || subtasks.length === 0">
+                <option value="">-- Select a Sub-task --</option>
                 <option *ngFor="let subtask of subtasks" [value]="subtask.key">
                   {{ subtask.key }} - {{ subtask.summary }} (Assignee: {{ subtask.assignee || 'Unassigned' }})
                 </option>
               </select>
-              <div class="form-text" *ngIf="!isLoadingSubtasks && subtasks.length === 0">
-                No sub-tasks available.
+              <div class="form-text text-danger" *ngIf="!isLoadingSubtasks && subtasks.length === 0">
+                <i class="bi bi-exclamation-triangle-fill"></i> No sub-tasks available. Please create a sub-task first to import test cases.
               </div>
               <div class="form-text" *ngIf="isLoadingSubtasks">
                 <span class="spinner-border spinner-border-sm me-2"></span>Loading sub-tasks...
               </div>
               <div class="form-text" *ngIf="!isLoadingSubtasks && subtasks.length > 0">
-                Select a sub-task to import test cases into it, or leave default to import to the main story
+                Select a sub-task to import test cases. Import is only allowed to sub-tasks.
               </div>
             </div>
           </div>
@@ -892,10 +902,10 @@
           </div>
         </div>
 
-        <div class="alert alert-warning mt-3">
+        <!-- <div class="alert alert-warning mt-3">
           <i class="bi bi-exclamation-triangle"></i>
           <strong> Note:</strong> This will create new test case issues in Jira. Make sure you have the necessary permissions.
-        </div>
+        </div> -->
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
