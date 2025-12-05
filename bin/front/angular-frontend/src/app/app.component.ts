@@ -906,9 +906,9 @@ export class AppComponent implements OnInit {
   // Tab switching
   switchTab(tab: 'issues' | 'testCases'): void {
     this.activeTab = tab;
-    if (tab === 'testCases' && this.jiraTestCases.length === 0) {
-      this.loadJiraTestCases();
-    }
+    
+    // Clear all filters when switching tabs
+    this.clearFilters();
   }
 
   // Migrated features methods
