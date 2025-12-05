@@ -7,12 +7,21 @@ import { NotificationService } from '../../../services/notification.service';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './toast-notification.component.html',
-  styles: []
+  styles: [`
+    .toast {
+      min-width: 300px;
+      max-width: 500px;
+      box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    .toast-body {
+      padding: 0.75rem;
+    }
+  `]
 })
 export class ToastNotificationComponent {
   notificationService = inject(NotificationService);
 
   get toastClass(): string {
-    return this.notificationService.type() === 'success' ? 'bg-green-500' : 'bg-red-500';
+    return this.notificationService.type() === 'success' ? 'bg-success' : 'bg-danger';
   }
 }

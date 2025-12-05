@@ -215,6 +215,7 @@ export class AppComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error loading components:', error);
+        this.notificationService.showError('Failed to load Jira components. Please ensure you are connected to the VPN and try again.');
       }
     });
   }
@@ -226,6 +227,7 @@ export class AppComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error loading sprints:', error);
+        this.notificationService.showError('Failed to load Jira sprints. Please ensure you are connected to the VPN and try again.');
       }
     });
   }
@@ -282,6 +284,7 @@ export class AppComponent implements OnInit {
         this.issuesTotalResults = 0;
         this.totalResults = 0;
         this.isLoadingIssues = false;
+        this.notificationService.showError('Failed to load Jira issues. Please ensure you are connected to the VPN and try again.');
       }
     });
   }
@@ -396,7 +399,13 @@ export class AppComponent implements OnInit {
       error: (error) => {
         this.isGeneratingTestCases = false;
         console.error('Error generating test cases:', error);
-        this.showErrorToast('Failed to generate test cases. Please try again.');
+        
+        // Close the modal so the toast notification is visible
+        if (this.issueDetailsModal) {
+          this.issueDetailsModal.hide();
+        }
+        
+        this.showErrorToast('Failed to generate test cases. Please ensure you are connected to the VPN and try again.');
       }
     });
   }
@@ -421,7 +430,7 @@ export class AppComponent implements OnInit {
       error: (error) => {
         console.error('Error generating more test cases:', error);
         this.isGeneratingTestCases = false;
-        this.showErrorToast('Failed to generate more test cases. Please try again.');
+        this.showErrorToast('Failed to generate more test cases. Please ensure you are connected to the VPN and try again.');
       }
     });
   }
@@ -523,13 +532,11 @@ export class AppComponent implements OnInit {
   }
 
   private showSuccessToast(message: string): void {
-    // Implementation for success toast
-    console.log('Success:', message);
+    this.notificationService.showSuccess(message);
   }
 
   private showErrorToast(message: string): void {
-    // Implementation for error toast
-    console.error('Error:', message);
+    this.notificationService.showError(message);
   }
 
   // Issues Pagination Info (Token-based)
@@ -706,7 +713,7 @@ export class AppComponent implements OnInit {
       error: (error) => {
         console.error('Error loading Jira versions:', error);
         this.jiraVersions = []; // Ensure it's always an array
-        this.showErrorToast('Failed to load Jira versions');
+        this.showErrorToast('Failed to load Jira versions. Please ensure you are connected to the VPN and try again.');
       }
     });
   }
@@ -738,7 +745,7 @@ export class AppComponent implements OnInit {
       error: (error) => {
         console.error('Error loading test cycles:', error);
         this.testCycles = []; // Ensure it's always an array
-        this.showErrorToast('Failed to load test cycles');
+        this.showErrorToast('Failed to load test cycles. Please ensure you are connected to the VPN and try again.');
       }
     });
   }
@@ -803,18 +810,24 @@ export class AppComponent implements OnInit {
     this.jiraService.importTestCasesToJira(this.testCases, importOptions).subscribe({
       next: (response) => {
         this.isImportingToJira = false;
+        console.log('📥 Import Response:', response);
         
-        if (response.success) {
+        // Check if import was successful (succeeded > 0 or failed === 0)
+        const hasSucceeded = response.succeeded > 0 || (response.total > 0 && response.failed === 0);
+        
+        if (hasSucceeded) {
           const targetInfo = this.selectedSubtaskKey 
             ? `sub-task ${this.selectedSubtaskKey}` 
             : `story ${this.currentIssue?.key}`;
-          const message = `Successfully imported ${response.created} test cases to ${targetInfo}!`;
+          const message = `Successfully imported ${response.succeeded} test case${response.succeeded !== 1 ? 's' : ''} to ${targetInfo}!`;
+          
           if (response.failed > 0) {
-            this.showErrorToast(`${message} ${response.failed} failed to import.`);
+            this.showErrorToast(`${message} However, ${response.failed} test case${response.failed !== 1 ? 's' : ''} failed to import.`);
           } else {
             this.showSuccessToast(message);
           }
         } else {
+          console.warn('⚠️ No test cases were successfully imported');
           this.showErrorToast('Failed to import test cases to Jira');
         }
 
@@ -825,7 +838,7 @@ export class AppComponent implements OnInit {
       error: (error) => {
         this.isImportingToJira = false;
         console.error('Error importing to Jira:', error);
-        this.showErrorToast('Failed to import test cases to Jira. Please check your connection and try again.');
+        this.showErrorToast('Failed to import test cases to Jira. Please ensure you are connected to the VPN and try again.');
       }
     });
   }
@@ -1049,14 +1062,18 @@ export class AppComponent implements OnInit {
       }
       
       const response = await fetch(url.toString());
-      if (response.ok) {
-        const data = await response.json();
-        console.log('📦 API Response:', data);
-        console.log('📊 Test Cases Count:', data.issues?.length || 0);
-        
-        // Map API response to TestCase model (API returns 'issues' not 'items')
-        // IMPORTANT: id = Jira key (SE2-123), jiraID = numeric internal ID used for Zephyr API
-        this.jiraTestCases = (data.issues || []).map((item: any) => {
+      if (!response.ok) {
+        // Handle non-200 status codes
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log('📦 API Response:', data);
+      console.log('📊 Test Cases Count:', data.issues?.length || 0);
+      
+      // Map API response to TestCase model (API returns 'issues' not 'items')
+      // IMPORTANT: id = Jira key (SE2-123), jiraID = numeric internal ID used for Zephyr API
+      this.jiraTestCases = (data.issues || []).map((item: any) => {
           // Process components - handle both string arrays and object arrays
           const comps = Array.isArray(item.components)
             ? (typeof item.components[0] === 'string' ? item.components : item.components.map((c: any) => c?.name).filter(Boolean))
@@ -1119,15 +1136,15 @@ export class AppComponent implements OnInit {
           nextToken: this.testCasesNextPageToken
         });
         
-        // Show table immediately after paginated API responds
-        this.isLoadingJiraTestCases = false;
-        
-        // Load execution statuses for the current page (per row, asynchronously)
-        this.loadExecutionStatusesForTestCases();
-      }
+      // Show table immediately after paginated API responds
+      this.isLoadingJiraTestCases = false;
+      
+      // Load execution statuses for the current page (per row, asynchronously)
+      this.loadExecutionStatusesForTestCases();
     } catch (error) {
       console.error('Failed to load Jira test cases:', error);
       this.isLoadingJiraTestCases = false;
+      this.notificationService.showError('Failed to load Jira test cases. Please ensure you are connected to the VPN and try again.');
     }
   }
 

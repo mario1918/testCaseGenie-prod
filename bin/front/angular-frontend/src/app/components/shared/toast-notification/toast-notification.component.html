@@ -1,19 +1,29 @@
 @if(notificationService.hasToast()) {
 <div 
-  [ngClass]="toastClass"
-  class="fixed bottom-6 right-6 text-white px-3 py-3 rounded-lg shadow-lg z-50 transition-all duration-300 flex items-center">
-  
-  @if(notificationService.type() === 'success') {
-  <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-  </svg>
-  }
-  @if(notificationService.type() === 'error') {
-  <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-  </svg>
-  }
-
-  <span>{{ notificationService.message() }}</span>
+  class="toast-container position-fixed bottom-0 end-0 p-3"
+  style="z-index: 11000;">
+  <div 
+    [ngClass]="toastClass"
+    class="toast show align-items-center text-white border-0"
+    role="alert"
+    aria-live="assertive"
+    aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body d-flex align-items-center">
+        @if(notificationService.type() === 'success') {
+          <i class="bi bi-check-circle-fill me-2" style="font-size: 1.25rem;"></i>
+        }
+        @if(notificationService.type() === 'error') {
+          <i class="bi bi-x-circle-fill me-2" style="font-size: 1.25rem;"></i>
+        }
+        <span>{{ notificationService.message() }}</span>
+      </div>
+      <button 
+        type="button" 
+        class="btn-close btn-close-white me-2 m-auto" 
+        (click)="notificationService.clearToast()"
+        aria-label="Close"></button>
+    </div>
+  </div>
 </div>
 }

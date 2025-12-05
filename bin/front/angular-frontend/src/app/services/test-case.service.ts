@@ -1,6 +1,7 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, BehaviorSubject } from 'rxjs';
+import { Observable, BehaviorSubject, throwError } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { TestCase, GenerateTestCaseRequest, ConversationMessage } from '../models/test-case.model';
 import { JiraIssue } from '../models/jira-issue.model';
 import { ApiConfigService } from './api-config.service';
@@ -503,7 +504,12 @@ export class TestCaseService {
       special_comments: specialComments
     };
 
-    return this.http.post<any>(this.apiConfig.getFullUrl('backend', 'generateTestCases'), payload);
+    return this.http.post<any>(this.apiConfig.getFullUrl('backend', 'generateTestCases'), payload).pipe(
+      catchError((error) => {
+        // Re-throw the error to be handled by the component
+        return throwError(() => error);
+      })
+    );
   }
 
   updateTestCases(testCases: TestCase[], append: boolean = false): void {
