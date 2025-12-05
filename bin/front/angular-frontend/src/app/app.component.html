@@ -854,7 +854,7 @@
           <div class="col-12">
             <div class="mb-3">
               <label for="subtaskSelect" class="form-label">
-                <i class="bi bi-diagram-3"></i> Import to Sub-task (Optional)
+                <i class="bi bi-diagram-3"></i> Import to Sub-task
               </label>
               <select class="form-select" id="subtaskSelect" [(ngModel)]="selectedSubtaskKey" [disabled]="isLoadingSubtasks">
                 <option value="">Import to Story: {{ currentIssue.key }} - {{ currentIssue.summary }}</option>
@@ -863,7 +863,7 @@
                 </option>
               </select>
               <div class="form-text" *ngIf="!isLoadingSubtasks && subtasks.length === 0">
-                No sub-tasks available. Test cases will be imported to the main story.
+                No sub-tasks available.
               </div>
               <div class="form-text" *ngIf="isLoadingSubtasks">
                 <span class="spinner-border spinner-border-sm me-2"></span>Loading sub-tasks...
