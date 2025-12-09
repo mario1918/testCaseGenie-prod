@@ -38,19 +38,46 @@ Do While IsBrowserRunning()
     WScript.Sleep 2000
 Loop
 
-' Browser closed, kill all server processes
+' Browser closed, kill TestCaseGenie server processes only
 WScript.Sleep 1000
 
-' Kill Node.js processes
 On Error Resume Next
-WshShell.Run "taskkill /F /IM node.exe", 0, True
 
-' Kill Python processes (uvicorn)
-WshShell.Run "taskkill /F /IM python.exe", 0, True
-WshShell.Run "taskkill /F /IM py.exe", 0, True
+' Get the script directory to identify our processes
+Set objFSO = CreateObject("Scripting.FileSystemObject")
+strScriptPath = objFSO.GetParentFolderName(WScript.ScriptFullName)
 
-' Kill any remaining npm processes
-WshShell.Run "taskkill /F /IM npm.cmd", 0, True
+' Kill only Node.js processes running from our project directories
+Set colProcesses = objWMIService.ExecQuery("SELECT * FROM Win32_Process WHERE Name = 'node.exe'")
+For Each objProcess In colProcesses
+    If Not IsNull(objProcess.CommandLine) Then
+        ' Only kill if it's our backend or frontend server
+        If InStr(objProcess.CommandLine, strScriptPath) > 0 Then
+            objProcess.Terminate()
+        End If
+    End If
+Next
+
+' Kill only Python processes running uvicorn from our project
+Set colProcesses = objWMIService.ExecQuery("SELECT * FROM Win32_Process WHERE Name = 'python.exe' OR Name = 'py.exe'")
+For Each objProcess In colProcesses
+    If Not IsNull(objProcess.CommandLine) Then
+        ' Only kill if it's our uvicorn server
+        If InStr(objProcess.CommandLine, strScriptPath) > 0 And InStr(objProcess.CommandLine, "uvicorn") > 0 Then
+            objProcess.Terminate()
+        End If
+    End If
+Next
+
+' Kill npm processes from our project only
+Set colProcesses = objWMIService.ExecQuery("SELECT * FROM Win32_Process WHERE Name LIKE '%npm%'")
+For Each objProcess In colProcesses
+    If Not IsNull(objProcess.CommandLine) Then
+        If InStr(objProcess.CommandLine, strScriptPath) > 0 Then
+            objProcess.Terminate()
+        End If
+    End If
+Next
 
 On Error Goto 0
 
